@@ -121,6 +121,37 @@ push to main  →  CI: format → test + coverage 95%
 
 ---
 
+## Security Notes
+
+repo นี้เป็น public — สิ่งที่ sensitive ทั้งหมดถูกป้องกันดังนี้:
+
+| ข้อมูล | วิธีป้องกัน |
+|--------|------------|
+| `DATABASE_URL`, `SECRET_KEY` | อยู่ใน `.env` ซึ่งอยู่ใน `.gitignore` ไม่ถูก push |
+| `RENDER_DEPLOY_HOOK` | อยู่ใน GitHub Secret ค่าจริงไม่เคย expose ใน code |
+| `.env.example` | มีแค่ชื่อ key ไม่มี value |
+
+> **หมายเหตุ:** ถ้ามีคนรู้ Render Deploy Hook URL จะทำได้แค่ trigger redeploy code เดิม ไม่สามารถแก้ไขหรือเข้าถึงข้อมูลได้
+
+---
+
+## Commit Convention
+
+โปรเจกต์นี้ใช้ [Conventional Commits](https://www.conventionalcommits.org)
+
+| Prefix | ความหมาย |
+|--------|----------|
+| `feat` | เพิ่ม feature ใหม่ |
+| `fix` | แก้ bug |
+| `chore` | งาน maintenance ที่ไม่กระทบ logic เช่น update dependencies |
+| `docs` | แก้ documentation |
+| `refactor` | ปรับโค้ดโดยไม่เปลี่ยน behavior |
+| `test` | เพิ่มหรือแก้ test |
+| `ci` | แก้ CI/CD config |
+| `style` | แก้ formatting ไม่กระทบ logic |
+
+---
+
 ## Stack
 
 | Layer | Technology |
