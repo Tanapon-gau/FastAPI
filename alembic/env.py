@@ -12,9 +12,15 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+DB_USER = os.getenv("DB_USER", "myuser")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "mypassword")
+DB_HOST = os.getenv("DB_HOST", "db")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "mydb")
+
 config.set_main_option(
     "sqlalchemy.url",
-    os.getenv("DATABASE_URL", "postgresql://myuser:mypassword@db:5432/mydb"),
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
 )
 
 target_metadata = Base.metadata
