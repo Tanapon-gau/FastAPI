@@ -20,7 +20,10 @@ DB_NAME = os.getenv("DB_NAME", "mydb")
 
 config.set_main_option(
     "sqlalchemy.url",
-    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
+    os.getenv(
+        "DATABASE_URL",
+        f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}",
+    ),
 )
 
 target_metadata = Base.metadata
