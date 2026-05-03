@@ -25,7 +25,7 @@
 ### 4. Code Quality
 - **Ruff** — code formatter และ linter แทน Black + Flake8
 - **Pylance** — static type checking, type hints ทุก function
-- **CI as gatekeeper** — ใช้ `ruff format --check` ใน CI เพื่อบังคับ format ก่อน merge
+- **CI** — ใช้ `ruff format --check` ใน CI เพื่อบังคับ format ก่อน merge
 
 ### 5. Testing
 - **pytest + httpx** — unit testing ด้วย `TestClient`
@@ -115,6 +115,16 @@ docker exec <container> alembic upgrade head
 pytest tests/ -v --cov=. --cov-report=term-missing --ignore=venv
 ```
 
+### Ruff (ควรรันก่อน commit ทุกครั้ง)
+
+```bash
+# format โค้ดทุกไฟล์
+venv/bin/ruff format .
+
+# เช็ค lint
+venv/bin/ruff check .
+```
+
 ---
 
 ## CI/CD Flow
@@ -170,7 +180,7 @@ repo นี้เป็น public — สิ่งที่ sensitive ทั้�
 **วิธีแก้:** มี 3 ทาง
 - Render Dashboard → Deploys → เลือก deploy → ดู section **"Pre-deploy"** จะเห็น output ของ alembic โดยตรง
 - Query ตาราง `alembic_version` ใน database ตรงๆ — Alembic สร้างตารางนี้ไว้เสมอ
-- เข้า Render Shell แล้วรัน `alembic current` เพื่อดู revision ปัจจุบัน
+- เข้า Render Shell แล้วรัน `alembic current` เพื่อดู revision ปัจจุบัน (Plan Free ใช้ไม่ได้)
 
 ---
 
@@ -209,16 +219,6 @@ dpg-d7rl68egvqtc73bj61p0-a.oregon-postgres.render.com
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 ```
 ผลคือ DBeaver กับ app ใช้ค่า field เดียวกันทุกอย่าง ต่างแค่ `DB_HOST`
-
----
-
-### 5. CI fail: ruff format check
-
-**ปัญหา:** CI ขึ้น `Would reformat: database.py` และ exit code 1
-
-**สาเหตุ:** local รัน `ruff format --check . --exclude venv` ผ่าน เพราะ exclude venv ออก แต่ CI รัน `ruff format --check .` โดยไม่ exclude — อย่างไรก็ตามปัญหาจริงคือ `database.py` ยังไม่ได้ถูก format หลังแก้โค้ด
-
-**วิธีแก้:** รัน `ruff format database.py` ก่อน commit เสมอ และเข้าใจว่า CI ไม่มี venv — packages ทั้งหมดติดตั้งตรงๆ ผ่าน `pip install -r requirements.txt` จึงใช้ `ruff` ได้โดยตรง ไม่ต้อง activate venv
 
 ---
 
