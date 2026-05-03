@@ -160,3 +160,21 @@ development workflow from local setup to a production-ready structure.
 - `yield` แบ่ง function เป็นสองช่วง — ก่อนและหลัง route รัน FastAPI จัดการ lifecycle ให้เอง
 - concept นี้ใช้กับทุก database (MySQL, MongoDB, Redis) และทุก resource ที่มีจำนวนจำกัด เช่น file handle, HTTP connection, network socket
 - ใน test ใช้ `app.dependency_overrides[get_db] = lambda: mock_db` แทน `@patch` เพราะ FastAPI ออกแบบมาให้ override dependency ตอน test โดยเฉพาะ
+
+### CI/CD — GitHub Actions
+- workflow แบ่งเป็น 3 jobs: `format` → `test` → `deploy` (รันตามลำดับด้วย `needs`)
+- `deploy` job รันเฉพาะตอน push ไป `main` เท่านั้น ไม่รันตอน PR
+- Secret ที่อยู่ใน **Environment** ต้องระบุ `environment: <ชื่อ>` ใน job ด้วย ไม่งั้นอ่านค่าไม่ได้
+- `HTTPBearer` คืน status code ต่างกันตาม FastAPI version — ควร pin version ใน `requirements.txt` ให้ตรงกับที่ test บน local เสมอ
+
+### GitHub Actions — action versioning
+- syntax `uses: actions/checkout@v6` คือ owner/repo@version เป็น syntax เฉพาะของ GitHub Actions
+- สิ่งที่ใส่หลัง `@` ได้:
+  ```yaml
+  actions/checkout@v6        # major version (แนะนำ)
+  actions/checkout@v6.0.2    # exact version
+  actions/checkout@main      # branch (ไม่ stable)
+  actions/checkout@sha       # commit SHA (ปลอดภัยที่สุด)
+  ```
+- Node.js version ของ action runner ไม่กระทบ Python code เลย — แค่ต้องอัปเดต action version ให้รองรับ Node version ใหม่
+- ดู version ล่าสุดได้ที่ github.com/marketplace หรือ github.com/actions/&lt;action-name&gt;/releases
