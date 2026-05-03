@@ -8,7 +8,9 @@ services:
         sync: false
       - key: SECRET_KEY
         sync: false
+    healthCheckPath: /
     buildCommand: ""
+    preDeployCommand: "alembic upgrade head"
     startCommand: ""
 
 databases:
