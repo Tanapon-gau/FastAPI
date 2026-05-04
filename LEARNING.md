@@ -1,11 +1,46 @@
-# Learning Journal — FastAPI + PostgreSQL + Docker
+# Learning Journal — FastAPI Project
 
-## What I Built
-A REST API with user authentication, built from scratch using
-FastAPI, PostgreSQL, and Docker. The project covers the full
-development workflow from local setup to a production-ready structure.
+โปรเจกต์นี้บันทึกสิ่งที่เรียนรู้จากการสร้าง REST API ด้วย FastAPI ตั้งแต่ local development จนถึง production deployment
 
-## Session 1 What I Learned
+---
+
+## สิ่งที่เรียนรู้ภาพรวม
+
+### Backend
+- **FastAPI** — REST API, routing, Pydantic schema validation
+- **SQLAlchemy** — ORM, database session management, Dependency Injection
+- **JWT Authentication** — register, login, token verification ด้วย python-jose + passlib
+
+### Database
+- **PostgreSQL** — relational database หลักของโปรเจกต์
+- **Alembic** — database migration tool สำหรับ alter table โดยข้อมูลไม่หาย
+- **Neon** — serverless PostgreSQL, scale to zero, รองรับ PostgreSQL 18
+- **Internal vs External URL** — Internal สำหรับ app บน Render, External สำหรับ tools ภายนอก
+
+### Infrastructure
+- **Docker + Docker Compose** — containerize API และ PostgreSQL
+- **Environment Variables** — จัดการ config ด้วย `.env` และ `python-dotenv`
+- **Render** — web service deployment, free plan ข้อจำกัด
+
+### Code Quality
+- **Ruff** — code formatter และ linter แทน Black + Flake8
+- **Pylance** — static type checking, type hints ทุก function
+- **CI as gatekeeper** — `ruff format --check` บังคับ format ก่อน merge
+
+### Testing
+- **pytest + httpx** — unit testing ด้วย `TestClient`
+- **MagicMock** — mock database โดยไม่ต้องต่อ DB จริง
+- **pytest-cov** — coverage report (95%+)
+
+### CI/CD
+- **GitHub Actions** — แยก CI และ CD เป็นคนละ workflow
+- **CI** — ตรวจสอบความถูกต้องของโค้ด: format, lint, test, coverage
+- **CD** — นำโค้ดที่ผ่าน CI ไปขึ้น environment จริง: migrate, deploy
+- **Repository vs Environment secrets** — เข้าถึง secret ต่างกันตาม job
+
+---
+
+## Session 1 — FastAPI, SQLAlchemy, Docker, Auth
 
 ### FastAPI
 - How to create API routes using decorators (@app.get, @app.post, etc.)
@@ -48,51 +83,36 @@ development workflow from local setup to a production-ready structure.
 - Why .env files should never be committed to git
 - How .env.example communicates required config without exposing secrets
 
----
+### Problems
 
-## Problems I Encountered and How I Solved Them
-
-### uvicorn: command not found
-- Cause: pip installed uvicorn in user-level Python path
-  which was not in the shell PATH
+**uvicorn: command not found**
+- Cause: pip installed uvicorn in user-level Python path which was not in the shell PATH
 - Fix: Added ~/Library/Python/3.9/bin to ~/.zshrc
 
-### psycopg2.OperationalError on startup
-- Cause: API container tried to connect to PostgreSQL
-  before it was ready to accept connections
-- Fix: Added healthcheck with pg_isready to docker-compose.yml
-  and changed depends_on to wait for service_healthy
+**psycopg2.OperationalError on startup**
+- Cause: API container tried to connect to PostgreSQL before it was ready
+- Fix: Added healthcheck with pg_isready to docker-compose.yml and changed depends_on to wait for service_healthy
 
-### column users.email does not exist
-- Cause: Added new columns to models.py but SQLAlchemy's create_all()
-  does not modify existing tables
-- Fix: Ran docker compose down -v to drop the volume
-  and recreate the database from scratch
+**column users.email does not exist**
+- Cause: Added new columns to models.py but SQLAlchemy's create_all() does not modify existing tables
+- Fix: Ran docker compose down -v to recreate the database from scratch
 - Long-term fix: Use Alembic for safe schema migrations
 
-### ModuleNotFoundError: No module named 'jose'
+**ModuleNotFoundError: No module named 'jose'**
 - Cause: Library was installed in local venv but not inside the Docker container
 - Fix: Added python-jose to requirements.txt and rebuilt the image
 
-### bcrypt ValueError: password cannot be longer than 72 bytes
+**bcrypt ValueError: password cannot be longer than 72 bytes**
 - Cause: bcrypt 5.0.0 is not fully compatible with passlib 1.7.4
-- Fix: Pinned bcrypt to 4.0.1 in requirements.txt
+- Fix: Pinned bcrypt to 3.2.2 in requirements.txt
 
-### Pylance type errors
-- Cause: SQLAlchemy columns return Column[str] not str,
-  and os.getenv() returns str | None not str
-- Fix: Wrapped SQLAlchemy values with str() or int(),
-  and added default values to all os.getenv() calls
+**Pylance type errors**
+- Cause: SQLAlchemy columns return Column[str] not str, and os.getenv() returns str | None not str
+- Fix: Wrapped SQLAlchemy values with str() or int(), and added default values to all os.getenv() calls
 
 ---
 
-## Next Steps
-- Dependency injection for cleaner session management
-- Deploy to production
-
----
-
-## Session 2 — Refactor, Testing, Alembic
+## Session 2 — Refactor, Testing, Alembic, CI/CD
 
 ### File Structure
 - `models.py` ต้อง import `Base` จาก `database.py` เสมอ ห้ามสร้างแยก
@@ -122,11 +142,10 @@ development workflow from local setup to a production-ready structure.
   user = User()
   user.id = 1
   ```
-- constructor คือ `__init__` ของ class รับ argument เหมือน function ปกติ
 
 ### Library Compatibility
 - `passlib 1.7.4` ไม่รองรับ `bcrypt >= 4.0` ต้องใช้ `bcrypt==3.2.2`
-- version ใน `requirements.txt` ต้องรองรับ Python version ที่ใช้ pytest 9.x รองรับ Python 3.10+ เท่านั้น Python 3.9 ต้องใช้ `pytest==8.4.2` (version สูงสุดที่รองรับ)
+- pytest 9.x รองรับ Python 3.10+ เท่านั้น Python 3.9 ต้องใช้ `pytest==8.4.2`
 
 ### Alembic
 - `create_all()` สร้างแค่ table ใหม่ ไม่แตะ table ที่มีอยู่แล้ว
@@ -138,13 +157,12 @@ development workflow from local setup to a production-ready structure.
   docker exec <container> alembic upgrade head
   docker exec <container> alembic downgrade -1
   ```
-- Django มี `makemigrations` / `migrate` built-in ทำให้อัตโนมัติ
-  FastAPI ต้อง setup Alembic เอง แต่ได้ความยืดหยุ่นมากกว่า
+- Django มี `makemigrations` / `migrate` built-in — FastAPI ต้อง setup Alembic เอง แต่ได้ความยืดหยุ่นมากกว่า
 
 ### Dependency Injection — Session Management
 - `SessionLocal()` แบบเดิมต้องเปิด/ปิด session เองทุก route — ถ้า error กลางทางก่อนถึง `db.close()` session จะค้างไม่ถูกปิด
 - Session ที่ค้างอยู่คือ connection ที่ถูกจองไว้ PostgreSQL มี connection จำกัด (default 100)
-  ถ้าค้างมากพอจะเกิด `too many connections` — มักไม่เจอตอน dev แต่พังตอน production ที่มี traffic จริง
+  ถ้าค้างมากพอจะเกิด `too many connections` — มักไม่เจอตอน dev แต่พังตอน production
 - แก้ด้วย `get_db()` generator + `Depends`:
   ```python
   def get_db():
@@ -153,22 +171,16 @@ development workflow from local setup to a production-ready structure.
           yield db      # ส่ง session ให้ route ใช้
       finally:
           db.close()    # ปิดเสมอ แม้จะ error
-
-  def register(user: UserCreate, db: Session = Depends(get_db)):
-      # ได้ db มาพร้อมใช้ ไม่ต้องเปิด/ปิดเอง
   ```
-- `yield` แบ่ง function เป็นสองช่วง — ก่อนและหลัง route รัน FastAPI จัดการ lifecycle ให้เอง
-- concept นี้ใช้กับทุก database (MySQL, MongoDB, Redis) และทุก resource ที่มีจำนวนจำกัด เช่น file handle, HTTP connection, network socket
-- ใน test ใช้ `app.dependency_overrides[get_db] = lambda: mock_db` แทน `@patch` เพราะ FastAPI ออกแบบมาให้ override dependency ตอน test โดยเฉพาะ
+- ใน test ใช้ `app.dependency_overrides[get_db] = lambda: mock_db` แทน `@patch`
 
 ### CI/CD — GitHub Actions
-- workflow แบ่งเป็น 3 jobs: `format` → `test` → `deploy` (รันตามลำดับด้วย `needs`)
-- `deploy` job รันเฉพาะตอน push ไป `main` เท่านั้น ไม่รันตอน PR
+- workflow แบ่งเป็น 3 jobs: `format` → `test` → `deploy`
 - Secret ที่อยู่ใน **Environment** ต้องระบุ `environment: <ชื่อ>` ใน job ด้วย ไม่งั้นอ่านค่าไม่ได้
-- `HTTPBearer` คืน status code ต่างกันตาม FastAPI version — ควร pin version ใน `requirements.txt` ให้ตรงกับที่ test บน local เสมอ
+- `HTTPBearer` คืน status code ต่างกันตาม FastAPI version — ควร pin version ใน `requirements.txt`
 
 ### GitHub Actions — action versioning
-- syntax `uses: actions/checkout@v6` คือ owner/repo@version เป็น syntax เฉพาะของ GitHub Actions
+- syntax `uses: actions/checkout@v6` คือ owner/repo@version
 - สิ่งที่ใส่หลัง `@` ได้:
   ```yaml
   actions/checkout@v6        # major version (แนะนำ)
@@ -176,5 +188,69 @@ development workflow from local setup to a production-ready structure.
   actions/checkout@main      # branch (ไม่ stable)
   actions/checkout@sha       # commit SHA (ปลอดภัยที่สุด)
   ```
-- Node.js version ของ action runner ไม่กระทบ Python code เลย — แค่ต้องอัปเดต action version ให้รองรับ Node version ใหม่
-- ดู version ล่าสุดได้ที่ github.com/marketplace หรือ github.com/actions/&lt;action-name&gt;/releases
+
+---
+
+## Session 3 — Database Connection, Deployment, Neon
+
+### Render Internal vs External URL
+- Internal hostname (`dpg-xxx`) ใช้ได้เฉพาะใน Render private network — DBeaver บนเครื่องเข้าไม่ได้
+- External hostname (`dpg-xxx.oregon-postgres.render.com`) ใช้สำหรับ tools ภายนอก
+- App บน Render ใช้ Internal, DBeaver ใช้ External — credentials เหมือนกันทุกอย่างต่างแค่ host
+
+### Individual DB env vars
+- แยก `DATABASE_URL` เป็น `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- ทำให้เปลี่ยนแค่ `DB_HOST` เพื่อสลับระหว่าง Internal (app) และ External (DBeaver)
+- ใช้ `or` แทน default parameter เพื่อรับมือกับ empty string:
+  ```python
+  DATABASE_URL = os.getenv("DATABASE_URL") or f"postgresql://{DB_USER}:..."
+  ```
+  เหตุผล: `os.getenv("KEY", default)` คืน default เฉพาะตอน KEY ไม่มีเลย แต่ถ้า KEY="" จะได้ "" แทน
+
+### Render Free Plan ข้อจำกัด
+- `preDeployCommand` ใช้ไม่ได้บน free plan
+- SSH / Shell access ใช้ไม่ได้บน free plan
+- แก้: ย้าย migration ไปรันใน GitHub Actions CD workflow แทน
+- บทเรียน: เช็ค feature ที่ต้องการก่อนเลือก platform เสมอ
+
+### GitHub Actions Secrets — Repository vs Environment
+- **Repository secrets**: เข้าถึงได้ทุก job โดยไม่ต้องระบุ `environment`
+- **Environment secrets**: เข้าถึงได้เฉพาะ job ที่ระบุ `environment: <ชื่อ>` เท่านั้น
+- ถ้าใส่ secret ผิดที่ → job อ่านค่าไม่ได้ → ได้ empty string → code ใช้ค่า default แทน
+- `NEON_DATABASE_URL` → Repository secret (migrate job ไม่มี environment)
+- `RENDER_DEPLOY_HOOK` → Environment secret (ต้องการ approval gate ก่อน deploy)
+
+### Alembic autogenerate ออกมาเป็น `pass`
+- เกิดเมื่อรัน `alembic revision --autogenerate` โดยที่ `alembic/env.py` ยังไม่มี `import models`
+- Alembic ไม่รู้จัก model → คิดว่าไม่มีอะไรต้องสร้าง → `upgrade()` เป็น `pass`
+- แก้: ต้องมี `import models` ใน `env.py` ก่อนรัน autogenerate เสมอ
+- บทเรียน: หลัง autogenerate ให้เปิดไฟล์ migration ตรวจสอบว่า `upgrade()` มี SQL จริง ไม่ใช่แค่ `pass`
+
+### Neon — Serverless PostgreSQL
+- Database หยุดทำงานอัตโนมัติตอนไม่มี request (scale to zero) ตื่นขึ้นมาเองตอนมี connection (~500ms)
+- โค้ด Python ไม่ต้องเปลี่ยน แค่เปลี่ยน connection string
+- ใช้ `sslmode=require` ใน connection string เสมอ: `...neon.tech/neondb?sslmode=require`
+- free tier รองรับ PostgreSQL 18
+
+### Problems
+
+**DBeaver: Unknown host (Internal hostname)**
+- Cause: ใช้ Internal hostname (`dpg-xxx`) ซึ่งใช้ได้แค่ใน Render network
+- Fix: เปลี่ยนเป็น External hostname (`dpg-xxx.oregon-postgres.render.com`)
+
+**DBeaver: Invalid JDBC URL**
+- Cause: URL ขาด port `:5432`
+- Fix: กรอก individual fields (Host/Port/Database/Username/Password) แทนการ paste URL
+
+**CI fail: ruff format check**
+- Cause: แก้โค้ดแล้วลืมรัน `ruff format .` ก่อน commit
+- Fix: รัน `venv/bin/ruff format .` ก่อน commit ทุกครั้ง
+- Note: CI ไม่มี venv — ruff ติดตั้งตรงๆ ผ่าน pip ไม่ต้อง activate venv
+
+**GitHub Actions secret ไม่ถูกอ่าน**
+- Cause: เพิ่ม secret ใน Environment (Main) แทน Repository secrets
+- Fix: ย้าย `NEON_DATABASE_URL` ไปที่ Repository secrets
+
+**Alembic migration ไม่สร้าง table**
+- Cause: migration แรกเป็น `pass` เพราะ `import models` ยังไม่มีตอน autogenerate
+- Fix: เพิ่ม `upgrade()` ใน migration แรกให้ตรงกับ model จริง
