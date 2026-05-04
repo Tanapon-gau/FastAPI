@@ -101,6 +101,20 @@ docker-compose up
 docker exec <container> alembic upgrade head
 ```
 
+### เช็ค Database ก่อน Deploy
+
+ทุกครั้งที่ pull code ใหม่หรือแก้ไข migration ควรรัน migration ใน local ก่อนเพื่อให้มั่นใจว่า database ใช้งานได้:
+
+```bash
+# รัน migration ชี้ไปที่ production DB โดยตรง
+DATABASE_URL=postgresql://USER:PASSWORD@EXTERNAL_HOST:5432/DB_NAME venv/bin/alembic upgrade head
+
+# เช็ค revision ปัจจุบัน
+DATABASE_URL=postgresql://USER:PASSWORD@EXTERNAL_HOST:5432/DB_NAME venv/bin/alembic current
+```
+
+> **หมายเหตุ:** ใช้ External hostname (`.oregon-postgres.render.com`) ไม่ใช่ Internal hostname
+
 ### ทดสอบผ่าน Swagger UI
 
 1. เปิด `http://localhost:8000/docs`
