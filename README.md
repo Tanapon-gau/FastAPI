@@ -269,6 +269,34 @@ DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NA
 
 ---
 
+### 7. Render Free Plan — ข้อจำกัดที่ทำให้ Alembic รันไม่ได้
+
+**สิ่งที่ทำไปบน Render:**
+- สร้าง Web Service + PostgreSQL database
+- ตั้ง env vars (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_PORT`, `DB_NAME`) บน dashboard
+- ตั้ง `preDeployCommand: "alembic upgrade head"` ใน render.yaml
+- เชื่อมต่อ DBeaver ด้วย External URL สำเร็จ แต่ไม่มี table
+
+**ปัญหา:** database ไม่มี table เลย แม้จะ deploy แล้ว
+
+**สาเหตุ:** Render Free Plan มีข้อจำกัด 3 อย่างที่ทำให้รัน Alembic ไม่ได้:
+
+| Feature | Free Plan | Paid Plan |
+|---------|-----------|-----------|
+| `preDeployCommand` | ❌ ไม่รองรับ | ✅ |
+| SSH / Shell access | ❌ ไม่รองรับ | ✅ |
+| Render CLI shell | ❌ ไม่รองรับ | ✅ |
+
+**วิธีแก้เฉพาะหน้า:** ย้าย migration ไปรันใน `startCommand` แทน:
+```yaml
+startCommand: "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000"
+```
+ข้อเสีย: ถ้า migration fail app จะไม่ start
+
+**บทเรียน:** ก่อนเลือก platform ควรเช็คว่า free tier รองรับ feature ที่ต้องการหรือเปล่า โดยเฉพาะ pre-deploy command และ shell access ซึ่งจำเป็นสำหรับ database migration
+
+---
+
 ## Stack
 
 | Layer | Technology |
