@@ -4,7 +4,15 @@ services:
     runtime: docker
     plan: free
     envVars:
-      - key: DATABASE_URL
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
         sync: false
       - key: SECRET_KEY
         sync: false
@@ -12,9 +20,3 @@ services:
     buildCommand: ""
     preDeployCommand: "alembic upgrade head"
     startCommand: ""
-
-databases:
-  - name: fastapi-db
-    plan: free
-    databaseName: mydb
-    user: myuser
