@@ -111,6 +111,15 @@ push to main  →  CI: format → test + coverage 95%
                  CD: migrate (Neon) → รอ Approve → deploy to Render
 ```
 
+### ลำดับที่ควรทำก่อน deploy
+
+1. **รัน migration ใน local** — ทดสอบว่า migration ใช้งานได้กับ database local ก่อน
+   ถ้าผ่านใน local แสดงว่า migration ถูกต้อง prod ก็ควรผ่านเช่นกัน
+2. **รัน tests** — ตรวจสอบว่าโค้ดไม่พัง
+3. **push to main** — CI/CD จะรัน migration บน Neon แล้ว deploy ไป Render อัตโนมัติ
+
+> สำหรับโปรเจกต์ขนาดใหญ่ควรทำตามลำดับนี้เสมอ เพราะ migration ที่พังบน production อาจทำให้ระบบหยุดทำงานทั้งหมด
+
 ---
 
 ## Security Notes
