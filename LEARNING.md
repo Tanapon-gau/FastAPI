@@ -210,8 +210,9 @@
 ### Render Free Plan ข้อจำกัด
 - `preDeployCommand` ใช้ไม่ได้บน free plan
 - SSH / Shell access ใช้ไม่ได้บน free plan
-- แก้: ย้าย migration ไปรันใน GitHub Actions CD workflow แทน
-- บทเรียน: เช็ค feature ที่ต้องการก่อนเลือก platform เสมอ
+- ทั้งสองอย่างจำเป็นสำหรับรัน Alembic migration บน server
+- แก้: ย้าย database ไปใช้ **Neon** และรัน migration ผ่าน **GitHub Actions CD** แทน
+- บทเรียน: เช็ค feature ที่ต้องการก่อนเลือก platform โดยเฉพาะ free tier
 
 ### GitHub Actions Secrets — Repository vs Environment
 - **Repository secrets**: เข้าถึงได้ทุก job โดยไม่ต้องระบุ `environment`
@@ -227,10 +228,44 @@
 - บทเรียน: หลัง autogenerate ให้เปิดไฟล์ migration ตรวจสอบว่า `upgrade()` มี SQL จริง ไม่ใช่แค่ `pass`
 
 ### Neon — Serverless PostgreSQL
-- Database หยุดทำงานอัตโนมัติตอนไม่มี request (scale to zero) ตื่นขึ้นมาเองตอนมี connection (~500ms)
-- โค้ด Python ไม่ต้องเปลี่ยน แค่เปลี่ยน connection string
-- ใช้ `sslmode=require` ใน connection string เสมอ: `...neon.tech/neondb?sslmode=require`
-- free tier รองรับ PostgreSQL 18
+- Database ทั่วไปรัน server ตลอด 24 ชั่วโมงและจ่ายเงินตลอดแม้ไม่มีคนใช้
+- Neon เป็น **serverless** — database หยุดทำงานอัตโนมัติตอนไม่มี request (scale to zero)
+  และตื่นขึ้นมาเองตอนมี connection (~500ms) จ่ายเงินเฉพาะตอนใช้งานจริง
+- โค้ด Python ไม่ต้องเปลี่ยนอะไร — เปลี่ยนแค่ connection string
+- ใช้ `sslmode=require` เสมอ: `postgresql://user:pass@host/db?sslmode=require`
+- free tier รองรับ PostgreSQL 18, storage 0.5 GB
+- migration รันผ่าน GitHub Actions CD โดย set `NEON_DATABASE_URL` เป็น Repository secret
+- สถาปัตยกรรมของโปรเจกต์นี้:
+  ```
+  Render (web app) → เชื่อมต่อ → Neon (database)
+  GitHub Actions   → รัน migration → Neon
+  ```
+
+### Scale to Zero คืออะไร
+- Database **หยุดทำงานอัตโนมัติ** เมื่อไม่มี connection และ**ตื่นขึ้นมาเองเมื่อมี request**
+- Free plan: หยุดหลังไม่มีใช้งาน 5 นาที, ตื่นใน ~500ms (cold start)
+- นับ compute hours เฉพาะตอนที่ database ตื่นอยู่ — ไม่นับตอนหยุด
+- Free plan ให้ 100 CU-hours/project/month (รีเซ็ตทุกเดือน)
+  - ถ้าใช้หมดก่อนสิ้นเดือน → database suspend จนกว่าจะรีเซ็ต
+  - default compute ของ free plan คือ 0.25 CU → active ได้ 400 ชั่วโมง/เดือน
+  - สำหรับโปรเจกต์เรียนรู้ 100 CU-hours/เดือนเกินพอ
+
+### Neon vs DynamoDB vs AWS RDS
+เลือก database service ให้ตรงกับลักษณะงาน:
+
+| | Neon | DynamoDB | AWS RDS |
+|---|---|---|---|
+| ประเภท | Relational (PostgreSQL) | NoSQL (Key-Value) | Relational (MySQL/PostgreSQL) |
+| Query | SQL | PartiQL / SDK | SQL |
+| Scale to zero | ✅ | ✅ | ❌ (ยกเว้น Aurora Serverless) |
+| จ่ายตอนไม่ใช้ | ไม่จ่าย | ไม่จ่าย | จ่ายตลอด (per hour) |
+| Free tier | ตลอดไป | ตลอดไป | 12 เดือนแรกเท่านั้น |
+
+- **Neon** — เหมาะกับโปรเจกต์ที่ใช้ SQL, มี schema ชัดเจน, traffic ไม่สม่ำเสมอ
+- **DynamoDB** — เหมาะกับ scale ใหญ่มาก, access pattern ชัด (lookup by key), ไม่ต้องการ JOIN, อยู่ใน AWS ecosystem
+- **AWS RDS** — เหมาะกับ production จริงจัง ที่ต้องการ HA, automated backups, read replicas และยอมจ่าย server ตลอดเพื่อ performance ที่ stable
+
+โปรเจกต์นี้ใช้ Neon เพราะ: ใช้ PostgreSQL เหมือนกันทุกอย่าง, free tier ตลอดไป, scale to zero ประหยัด CU-hours สำหรับ dev/learning
 
 ### Problems
 
